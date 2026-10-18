@@ -7,9 +7,7 @@
   "license": "MIT",
   "scripts": {
     "start": "electron .",
-    "build-win": "electron-builder --win --x64",
-    "build-mac": "electron-builder --mac",
-    "build-linux": "electron-builder --linux"
+    "build-win": "electron-builder --win --x64"
   },
   "devDependencies": {
     "electron": "^29.0.0",
@@ -20,30 +18,18 @@
     "productName": "EvoluMC Launcher",
     "copyright": "EvoluMC_Studios © 2024",
     "win": {
-      "target": "nsis",
-      "icon": "icon.ico"
+      "target": "nsis"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "installerIcon": "icon.ico",
-      "uninstallerIcon": "icon.ico",
-      "installerHeaderIcon": "icon.ico",
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "EvoluMC Launcher"
     },
-    "mac": {
-      "target": "dmg",
-      "icon": "icon.icns"
-    },
-    "linux": {
-      "target": "AppImage"
-    },
     "files": [
       "index.html",
-      "main.js",
-      "icon.*"
+      "main.js"
     ]
   }
 }

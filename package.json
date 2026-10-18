@@ -9,6 +9,10 @@
     "start": "electron .",
     "build-win": "electron-builder --win --x64"
   },
+  "dependencies": {
+    "minecraft-launcher-lib": "^6.2.0",
+    "msmc": "^4.1.0"
+  },
   "devDependencies": {
     "electron": "^29.0.0",
     "electron-builder": "^24.0.0"
@@ -17,8 +21,10 @@
     "appId": "fr.evolumc.launcher",
     "productName": "EvoluMC Launcher",
     "copyright": "EvoluMC_Studios © 2024",
+    "asar": true,
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "publisherName": "EvoluMC_Studios"
     },
     "nsis": {
       "oneClick": false,
@@ -29,7 +35,9 @@
     },
     "files": [
       "index.html",
-      "main.js"
+      "main.js",
+      "preload.js",
+      "node_modules/**/*"
     ]
   }
 }

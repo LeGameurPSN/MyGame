@@ -10,10 +10,10 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - name: Checkout du code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -21,13 +21,17 @@ jobs:
       - name: Installer les dépendances
         run: npm install
 
-      - name: Compiler l'exe Windows
+      - name: Build exe
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Désactive la publication automatique (on utilise upload-artifact)
+          EP_PRE_RELEASE: false
+          CSC_IDENTITY_AUTO_DISCOVERY: false
         run: npm run build-win
 
-      - name: Upload de l'installeur .exe
+      - name: Upload .exe
         uses: actions/upload-artifact@v4
         with:
           name: EvoluMC-Launcher-Windows
           path: dist/*.exe
+          retention-days: 30

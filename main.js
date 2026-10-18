@@ -1,11 +1,11 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
-const path  = require('path');
-const os    = require('os');
-const fs    = require('fs');
+const path = require('path');
+const os   = require('os');
+const fs   = require('fs');
 
 let win;
 const ROOT = path.join(os.homedir(), '.evolumc');
-let authResult = null;
+let mclcAuth = null;
 
 function createWindow() {
   win = new BrowserWindow({
@@ -27,83 +27,56 @@ function createWindow() {
 app.whenReady().then(createWindow);
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
 
-/* Window controls */
+/* ── Window controls ── */
 ipcMain.on('win-min',   () => win.minimize());
 ipcMain.on('win-max',   () => win.isMaximized() ? win.unmaximize() : win.maximize());
 ipcMain.on('win-close', () => app.quit());
 
-/* Microsoft Auth via msmc */
+/* ── Microsoft Auth (msmc v4 + mclc) ── */
 ipcMain.handle('auth-microsoft', async () => {
   try {
-    const { msmc } = require('msmc');
-    const result = await msmc.fastLaunch('electron', (update) => {
-      win.webContents.send('auth-update', update.toString());
-    });
-    if (msmc.errorCheck(result)) {
-      return { success: false, error: 'Connexion annulée ou échouée.' };
-    }
-    const token = msmc.getMCLC().getAuth(result);
-    authResult = token;
+    const { Auth } = require('msmc');
+    const authManager = new Auth('select_account');
+    const xboxManager = await authManager.launch('electron');
+    const token = await xboxManager.getMinecraft();
+
+    // mclc() converts the msmc token into a minecraft-launcher-core auth object
+    mclcAuth = token.mclc();
+
     return {
-      success: true,
-      username: token.name,
-      uuid: token.uuid,
+      success:  true,
+      username: token.profile.name,
+      uuid:     token.profile.id,
     };
   } catch (e) {
     return { success: false, error: e.message };
   }
 });
 
-/* Launch Minecraft */
+/* ── Launch Minecraft ── */
 ipcMain.handle('launch-minecraft', async (event, version) => {
-  if (!authResult) return { success: false, error: 'Non connecté.' };
+  if (!mclcAuth) return { success: false, error: 'Non connecté.' };
   if (!fs.existsSync(ROOT)) fs.mkdirSync(ROOT, { recursive: true });
 
   try {
-    const { install, getVersionList } = require('@xmcl/installer');
-    const { MinecraftFolder, launch } = require('@xmcl/core');
+    const { Client } = require('minecraft-launcher-core');
+    const launcher = new Client();
 
-    const folder = MinecraftFolder.from(ROOT);
+    const opts = {
+      authorization: mclcAuth,
+      root:    ROOT,
+      version: { number: version, type: 'release' },
+      memory:  { max: '4G', min: '1G' },
+      window:  { width: 1280, height: 720 },
+    };
 
-    /* 1. Download version if needed */
-    win.webContents.send('mc-status', 'Vérification de la version ' + version + '…');
-    const versionList = await getVersionList();
-    const versionMeta = versionList.versions.find(v => v.id === version);
-    if (!versionMeta) return { success: false, error: 'Version introuvable : ' + version };
+    launcher.on('debug',           (e) => win.webContents.send('mc-data', e));
+    launcher.on('data',            (e) => win.webContents.send('mc-data', e));
+    launcher.on('progress',        (e) => win.webContents.send('mc-progress', e));
+    launcher.on('download-status', (e) => win.webContents.send('mc-download', e));
+    launcher.on('close',           (c) => win.webContents.send('mc-close', c));
 
-    await install(versionMeta, folder, {
-      onProgress: (task) => {
-        win.webContents.send('mc-progress', {
-          name: task.path,
-          current: task.progress,
-          total: task.total,
-        });
-      },
-    });
-
-    win.webContents.send('mc-status', 'Lancement de Minecraft…');
-
-    /* 2. Launch */
-    const proc = await launch({
-      gamePath: ROOT,
-      javaPath: 'java',
-      version: version,
-      gameProfile: {
-        id: authResult.uuid,
-        name: authResult.name,
-      },
-      accessToken: authResult.access_token,
-      userType: 'msa',
-      resolution: { width: 1280, height: 720 },
-      extraExecOption: {
-        detached: true,
-      },
-    });
-
-    proc.stdout.on('data', d => win.webContents.send('mc-data', d.toString()));
-    proc.stderr.on('data', d => win.webContents.send('mc-data', d.toString()));
-    proc.on('close', code => win.webContents.send('mc-close', code));
-
+    await launcher.launch(opts);
     return { success: true };
   } catch (e) {
     return { success: false, error: e.message };

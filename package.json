@@ -1,0 +1,49 @@
+{
+  "name": "evolumc-launcher",
+  "version": "1.0.0",
+  "description": "Launcher officiel EvoluMC — EvoluMC_Studios",
+  "main": "main.js",
+  "author": "EvoluMC_Studios",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "build-win": "electron-builder --win --x64",
+    "build-mac": "electron-builder --mac",
+    "build-linux": "electron-builder --linux"
+  },
+  "devDependencies": {
+    "electron": "^29.0.0",
+    "electron-builder": "^24.0.0"
+  },
+  "build": {
+    "appId": "fr.evolumc.launcher",
+    "productName": "EvoluMC Launcher",
+    "copyright": "EvoluMC_Studios © 2024",
+    "win": {
+      "target": "nsis",
+      "icon": "icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "icon.ico",
+      "uninstallerIcon": "icon.ico",
+      "installerHeaderIcon": "icon.ico",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "EvoluMC Launcher"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "icon.icns"
+    },
+    "linux": {
+      "target": "AppImage"
+    },
+    "files": [
+      "index.html",
+      "main.js",
+      "icon.*"
+    ]
+  }
+}

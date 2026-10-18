@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EvoluMC Launcher — EvoluMC_Studios</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ─── TOKENS ────────────────────────────────────────────── */
+    :root {
+      --bg:        #0a0c10;
+      --surface:   #111318;
+      --panel:     #171b22;
+      --border:    #252b36;
+      --green:     #3dde7e;
+      --green-dim: #24a357;
+      --blue:      #4a9eff;
+      --text:      #e8edf5;
+      --muted:     #6b7585;
+      --danger:    #ff4f4f;
+      --r:         10px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      user-select: none;
+    }
+
+    /* ─── TITLE BAR ─────────────────────────────────────────── */
+    #titlebar {
+      height: 36px;
+      background: #080a0d;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px 0 16px;
+      -webkit-app-region: drag;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    #titlebar .brand {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--green);
+      letter-spacing: .04em;
+    }
+    #titlebar .brand span { color: var(--muted); font-weight: 400; }
+    .win-btns {
+      display: flex;
+      gap: 6px;
+      -webkit-app-region: no-drag;
+    }
+    .win-btn {
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: none;
+    }
+    .win-btn.close  { background: #ff5f57; }
+    .win-btn.min    { background: #febc2e; }
+    .win-btn.max    { background: #28c840; }
+    .win-btn:hover  { opacity: .8; }
+
+    /* ─── LAYOUT ────────────────────────────────────────────── */
+    #app {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ─── SIDEBAR ───────────────────────────────────────────── */
+    #sidebar {
+      width: 220px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 24px 0 16px;
+      flex-shrink: 0;
+    }
+    .logo-area {
+      padding: 0 20px 28px;
+      border-bottom: 1px solid var(--border);
+    }
+    .logo-block {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo-cube {
+      width: 40px; height: 40px;
+      background: linear-gradient(135deg, var(--green) 0%, #1aaa55 100%);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+      box-shadow: 0 4px 16px rgba(61,222,126,.25);
+    }
+    .logo-text { line-height: 1.2; }
+    .logo-text strong { font-size: 15px; font-weight: 700; color: var(--text); display: block; }
+    .logo-text small  { font-size: 10px; color: var(--muted); letter-spacing: .06em; }
+
+    nav {
+      margin-top: 20px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 0 10px;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--muted);
+      cursor: pointer;
+      transition: background .15s, color .15s;
+    }
+    .nav-item:hover { background: var(--panel); color: var(--text); }
+    .nav-item.active { background: rgba(61,222,126,.1); color: var(--green); }
+    .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+
+    .sidebar-footer {
+      padding: 16px 10px 0;
+      border-top: 1px solid var(--border);
+    }
+    .account-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+    }
+    .account-card:hover { border-color: var(--green-dim); }
+    .avatar {
+      width: 32px; height: 32px;
+      border-radius: 6px;
+      background: linear-gradient(135deg, #1e3a5f, #3d6eb5);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+    .account-info { flex: 1; min-width: 0; }
+    .account-info .name { font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .account-info .sub  { font-size: 11px; color: var(--muted); }
+    .status-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 6px var(--green);
+      flex-shrink: 0;
+    }
+    .status-dot.offline { background: var(--muted); box-shadow: none; }
+
+    /* ─── MAIN ──────────────────────────────────────────────── */
+    #main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* SCREENS */
+    .screen { display: none; flex-direction: column; height: 100%; }
+    .screen.active { display: flex; }
+
+    /* ─── HOME SCREEN ───────────────────────────────────────── */
+    #screen-home {
+      background:
+        radial-gradient(ellipse 80% 60% at 70% 20%, rgba(61,222,126,.07) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 20% 80%, rgba(74,158,255,.05) 0%, transparent 55%),
+        var(--bg);
+    }
+
+    .hero {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 0;
+      padding: 24px 40px 0;
+      text-align: center;
+      position: relative;
+    }
+
+    .evolumc-wordmark {
+      font-size: 62px;
+      font-weight: 900;
+      line-height: 1;
+      letter-spacing: -.03em;
+      color: transparent;
+      background: linear-gradient(135deg, #ffffff 30%, var(--green) 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      margin-bottom: 6px;
+    }
+    .evolumc-wordmark em {
+      font-style: normal;
+      color: transparent;
+      background: linear-gradient(135deg, var(--green) 0%, #1aaa55 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+    }
+    .tagline {
+      font-size: 13px;
+      color: var(--muted);
+      letter-spacing: .08em;
+      margin-bottom: 36px;
+    }
+
+    .news-ticker {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 18px;
+      font-size: 12px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 32px;
+      max-width: 480px;
+    }
+    .news-ticker .badge {
+      background: rgba(61,222,126,.15);
+      color: var(--green);
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      letter-spacing: .05em;
+      flex-shrink: 0;
+    }
+
+    /* LAUNCH BAR */
+    .launch-bar {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 20px 40px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .version-selector {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 10px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 200px;
+      cursor: pointer;
+      transition: border-color .15s;
+    }
+    .version-selector:hover { border-color: var(--green-dim); }
+    .version-selector label {
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: .06em;
+      pointer-events: none;
+    }
+    .version-selector select {
+      background: none;
+      border: none;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 600;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      outline: none;
+      appearance: none;
+      width: 100%;
+    }
+    .version-selector select option { background: #1a1f28; }
+
+    .btn-launch {
+      flex: 1;
+      height: 52px;
+      background: linear-gradient(135deg, var(--green) 0%, #1aaa55 100%);
+      border: none;
+      border-radius: var(--r);
+      font-size: 15px;
+      font-weight: 700;
+      color: #000;
+      letter-spacing: .04em;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: opacity .15s, transform .1s;
+    }
+    .btn-launch:hover  { opacity: .92; transform: translateY(-1px); }
+    .btn-launch:active { transform: translateY(0); }
+    .btn-launch.loading {
+      pointer-events: none;
+      background: var(--border);
+      color: var(--muted);
+    }
+    .btn-launch .btn-inner { position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .btn-launch .ripple {
+      position: absolute;
+      background: rgba(255,255,255,.2);
+      border-radius: 50%;
+      transform: scale(0);
+      animation: ripple .5s linear;
+      pointer-events: none;
+    }
+    @keyframes ripple { to { transform: scale(4); opacity: 0; } }
+
+    /* PROGRESS */
+    #progress-area {
+      padding: 0 40px 16px;
+      background: var(--surface);
+      display: none;
+    }
+    #progress-area.visible { display: block; }
+    .progress-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; display: flex; justify-content: space-between; }
+    .progress-bar { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, var(--green), #1aaa55); border-radius: 2px; width: 0%; transition: width .3s; }
+
+    /* ─── LOGIN SCREEN ──────────────────────────────────────── */
+    #screen-login {
+      align-items: center;
+      justify-content: center;
+      background:
+        radial-gradient(ellipse 60% 50% at 50% 50%, rgba(61,222,126,.06) 0%, transparent 70%),
+        var(--bg);
+    }
+    .login-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 40px;
+      width: 380px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+    }
+    .ms-logo {
+      font-size: 40px;
+      margin-bottom: 8px;
+    }
+    .login-card h2 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+    .login-card p  { font-size: 13px; color: var(--muted); text-align: center; margin-bottom: 28px; line-height: 1.5; }
+
+    .form-group { width: 100%; margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+    .form-group input {
+      width: 100%;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 14px;
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      outline: none;
+      transition: border-color .15s;
+    }
+    .form-group input:focus { border-color: var(--green-dim); }
+    .form-group input::placeholder { color: var(--muted); }
+
+    .btn-ms {
+      width: 100%;
+      height: 46px;
+      background: #0078d4;
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 6px;
+      transition: background .15s;
+    }
+    .btn-ms:hover { background: #106ebe; }
+    .btn-ms svg { width: 18px; height: 18px; }
+
+    .divider {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 20px 0;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .divider::before, .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .btn-offline {
+      width: 100%;
+      height: 40px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 500;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      transition: border-color .15s, color .15s;
+    }
+    .btn-offline:hover { border-color: var(--green-dim); color: var(--text); }
+
+    .security-note {
+      margin-top: 20px;
+      font-size: 11px;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.5;
+      display: flex;
+      gap: 6px;
+      align-items: flex-start;
+    }
+
+    /* ─── VERSIONS SCREEN ───────────────────────────────────── */
+    #screen-versions {
+      padding: 28px 32px;
+      overflow-y: auto;
+    }
+    .screen-title {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .screen-sub { font-size: 13px; color: var(--muted); margin-bottom: 24px; }
+
+    .versions-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 14px;
+    }
+    .version-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+      cursor: pointer;
+      transition: border-color .15s, transform .1s;
+    }
+    .version-card:hover { border-color: var(--green-dim); transform: translateY(-2px); }
+    .version-card.installed { border-color: rgba(61,222,126,.25); }
+    .vc-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .vc-icon { font-size: 28px; }
+    .vc-badge {
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+    .vc-badge.installed { background: rgba(61,222,126,.15); color: var(--green); }
+    .vc-badge.latest    { background: rgba(74,158,255,.15); color: var(--blue); }
+    .vc-badge.vanilla   { background: rgba(255,255,255,.08); color: var(--muted); }
+    .vc-name { font-size: 15px; font-weight: 700; margin-bottom: 2px; }
+    .vc-sub  { font-size: 12px; color: var(--muted); }
+
+    /* ─── SETTINGS SCREEN ───────────────────────────────────── */
+    #screen-settings {
+      padding: 28px 32px;
+      overflow-y: auto;
+    }
+    .settings-section { margin-bottom: 28px; }
+    .settings-section h3 { font-size: 13px; color: var(--muted); letter-spacing: .06em; margin-bottom: 12px; }
+    .setting-row {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .setting-info .s-name { font-size: 14px; font-weight: 500; }
+    .setting-info .s-desc { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .toggle {
+      width: 40px; height: 22px;
+      background: var(--border);
+      border-radius: 11px;
+      position: relative;
+      cursor: pointer;
+      transition: background .2s;
+      flex-shrink: 0;
+    }
+    .toggle.on { background: var(--green); }
+    .toggle::after {
+      content: '';
+      position: absolute;
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      background: #fff;
+      top: 3px; left: 3px;
+      transition: transform .2s;
+    }
+    .toggle.on::after { transform: translateX(18px); }
+
+    .range-wrap { display: flex; align-items: center; gap: 10px; }
+    .range-wrap input[type=range] {
+      width: 120px;
+      accent-color: var(--green);
+    }
+    .range-val { font-size: 13px; font-weight: 600; width: 36px; text-align: right; }
+
+    .input-setting {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 6px 12px;
+      font-size: 13px;
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      outline: none;
+      width: 200px;
+      transition: border-color .15s;
+    }
+    .input-setting:focus { border-color: var(--green-dim); }
+
+    /* ─── TOAST ─────────────────────────────────────────────── */
+    #toast {
+      position: fixed;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 20px;
+      font-size: 13px;
+      color: var(--text);
+      opacity: 0;
+      transition: opacity .2s, transform .2s;
+      pointer-events: none;
+      z-index: 100;
+      white-space: nowrap;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<!-- TITLE BAR -->
+<div id="titlebar">
+  <div class="brand">EvoluMC Launcher <span>— EvoluMC_Studios</span></div>
+  <div class="win-btns">
+    <button class="win-btn min" title="Minimiser"></button>
+    <button class="win-btn max" title="Maximiser"></button>
+    <button class="win-btn close" title="Fermer" onclick="window.close()"></button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+
+  <!-- SIDEBAR -->
+  <aside id="sidebar">
+    <div class="logo-area">
+      <div class="logo-block">
+        <div class="logo-cube">⛏️</div>
+        <div class="logo-text">
+          <strong>EvoluMC</strong>
+          <small>EvoluMC_Studios</small>
+        </div>
+      </div>
+    </div>
+
+    <nav>
+      <div class="nav-item active" data-screen="home">
+        <span class="nav-icon">🏠</span> Accueil
+      </div>
+      <div class="nav-item" data-screen="versions">
+        <span class="nav-icon">📦</span> Versions
+      </div>
+      <div class="nav-item" data-screen="settings">
+        <span class="nav-icon">⚙️</span> Paramètres
+      </div>
+      <div class="nav-item" id="nav-login" data-screen="login">
+        <span class="nav-icon">👤</span> Compte
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="account-card" id="account-card" onclick="navigate('login')">
+        <div class="avatar" id="player-avatar">❓</div>
+        <div class="account-info">
+          <div class="name" id="player-name">Non connecté</div>
+          <div class="sub"  id="player-sub">Se connecter →</div>
+        </div>
+        <div class="status-dot offline" id="status-dot"></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div id="main">
+
+    <!-- HOME -->
+    <div class="screen active" id="screen-home">
+      <div class="hero">
+        <div class="evolumc-wordmark">Evolu<em>MC</em></div>
+        <div class="tagline">POWERED BY EVOLUCMC_STUDIOS • VANILLA MINECRAFT</div>
+
+        <div class="news-ticker">
+          <span class="badge">NOUVEAU</span>
+          <span id="ticker-text">EvoluMC 1.21.4 disponible — Serveur principal en ligne ✅</span>
+        </div>
+
+        <!-- Server status -->
+        <div style="display:flex; gap:14px; margin-bottom:0; flex-wrap:wrap; justify-content:center;">
+          <div style="background:var(--panel); border:1px solid var(--border); border-radius:9px; padding:12px 20px; text-align:center; min-width:130px;">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">SERVEUR PRINCIPAL</div>
+            <div style="font-size:13px;font-weight:600;color:var(--green);">● En ligne</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px;" id="player-count">143 / 500 joueurs</div>
+          </div>
+          <div style="background:var(--panel); border:1px solid var(--border); border-radius:9px; padding:12px 20px; text-align:center; min-width:130px;">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">VERSION</div>
+            <div style="font-size:13px;font-weight:600;color:var(--text);">1.21.4</div>
+            <div style="font-size:12px;color:var(--blue);margin-top:2px;">Vanilla</div>
+          </div>
+          <div style="background:var(--panel); border:1px solid var(--border); border-radius:9px; padding:12px 20px; text-align:center; min-width:130px;">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">PING</div>
+            <div style="font-size:13px;font-weight:600;color:var(--green);" id="ping-display">— ms</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px;">play.evolumc.fr</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Progress -->
+      <div id="progress-area">
+        <div class="progress-label">
+          <span id="progress-text">Préparation…</span>
+          <span id="progress-pct">0%</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+      </div>
+
+      <!-- Launch Bar -->
+      <div class="launch-bar">
+        <div class="version-selector">
+          <label>VERSION</label>
+          <select id="version-select">
+            <option value="1.21.4">EvoluMC 1.21.4 (Recommandé)</option>
+            <option value="1.21.1">EvoluMC 1.21.1</option>
+            <option value="1.20.6">EvoluMC 1.20.6</option>
+            <option value="1.20.4">EvoluMC 1.20.4</option>
+            <option value="1.19.4">EvoluMC 1.19.4</option>
+          </select>
+        </div>
+        <button class="btn-launch" id="btn-launch" onclick="launchGame()">
+          <div class="btn-inner">
+            <span id="launch-icon">▶</span>
+            <span id="launch-label">JOUER</span>
+          </div>
+        </button>
+      </div>
+    </div>
+
+    <!-- LOGIN -->
+    <div class="screen" id="screen-login">
+      <div class="login-card">
+        <div class="ms-logo">🪟</div>
+        <h2>Connexion Microsoft</h2>
+        <p>Connecte-toi avec ton compte Microsoft pour jouer sur EvoluMC en mode authentifié.</p>
+
+        <div class="form-group">
+          <label>Adresse e-mail Microsoft</label>
+          <input type="email" id="ms-email" placeholder="exemple@outlook.com" />
+        </div>
+        <div class="form-group">
+          <label>Mot de passe</label>
+          <input type="password" id="ms-password" placeholder="••••••••" />
+        </div>
+
+        <button class="btn-ms" onclick="loginMicrosoft()">
+          <svg viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="1" y="1" width="9" height="9" fill="#F25022"/>
+            <rect x="11" y="1" width="9" height="9" fill="#7FBA00"/>
+            <rect x="1" y="11" width="9" height="9" fill="#00A4EF"/>
+            <rect x="11" y="11" width="9" height="9" fill="#FFB900"/>
+          </svg>
+          Se connecter avec Microsoft
+        </button>
+
+        <div class="divider">ou</div>
+
+        <button class="btn-offline" onclick="loginOffline()">
+          Continuer hors-ligne (mode démo)
+        </button>
+
+        <div class="security-note">
+          🔒 Tes identifiants ne sont jamais stockés par EvoluMC_Studios. La connexion est gérée directement par Microsoft via OAuth2.
+        </div>
+      </div>
+    </div>
+
+    <!-- VERSIONS -->
+    <div class="screen" id="screen-versions">
+      <div class="screen-title">Bibliothèque de versions</div>
+      <div class="screen-sub">Versions Vanilla Minecraft disponibles sur EvoluMC</div>
+      <div class="versions-grid" id="versions-grid">
+        <!-- filled by JS -->
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="screen" id="screen-settings">
+      <div class="screen-title">Paramètres</div>
+      <div class="screen-sub">Configuration du launcher EvoluMC</div>
+
+      <div class="settings-section">
+        <h3>JAVA</h3>
+        <div class="setting-row">
+          <div class="setting-info">
+            <div class="s-name">RAM allouée</div>
+            <div class="s-desc">Mémoire dédiée à Minecraft</div>
+          </div>
+          <div class="range-wrap">
+            <input type="range" min="1" max="16" value="4" id="ram-slider" oninput="document.getElementById('ram-val').textContent=this.value+'G'" />
+            <span class="range-val" id="ram-val">4G</span>
+          </div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-info">
+            <div class="s-name">Chemin Java</div>
+            <div class="s-desc">Laisser vide pour auto-détection</div>
+          </div>
+          <input type="text" class="input-setting" placeholder="C:\Program Files\Java\..." />
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3>LAUNCHER</h3>
+        <div class="setting-row">
+          <div class="setting-info">
+            <div class="s-name">Fermer au lancement</div>
+            <div class="s-desc">Minimise le launcher quand Minecraft démarre</div>
+          </div>
+          <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-info">
+            <div class="s-name">Mises à jour automatiques</div>
+            <div class="s-desc">Télécharge les nouvelles versions automatiquement</div>
+          </div>
+          <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-info">
+            <div class="s-name">Discord Rich Presence</div>
+            <div class="s-desc">Affiche EvoluMC dans ton statut Discord</div>
+          </div>
+          <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-info">
+            <div class="s-name">Mode fullscreen</div>
+            <div class="s-desc">Lance Minecraft en plein écran</div>
+          </div>
+          <div class="toggle" onclick="this.classList.toggle('on')"></div>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3>RÉSOLUTION</h3>
+        <div class="setting-row">
+          <div class="setting-info">
+            <div class="s-name">Largeur</div>
+          </div>
+          <input type="number" class="input-setting" value="1280" style="width:100px" />
+        </div>
+        <div class="setting-row">
+          <div class="setting-info">
+            <div class="s-name">Hauteur</div>
+          </div>
+          <input type="number" class="input-setting" value="720" style="width:100px" />
+        </div>
+      </div>
+
+      <div style="padding:0 0 32px;">
+        <div style="font-size:11px;color:var(--muted);text-align:center;">
+          EvoluMC Launcher v1.0.0 — EvoluMC_Studios © 2024<br>
+          Minecraft est une marque de Mojang Studios
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<div id="toast"></div>
+
+<script>
+/* ── State ── */
+let user = null;
+let launching = false;
+
+/* ── Navigation ── */
+function navigate(screen) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('screen-' + screen).classList.add('active');
+  const ni = document.querySelector(`.nav-item[data-screen="${screen}"]`);
+  if (ni) ni.classList.add('active');
+}
+
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => navigate(item.dataset.screen));
+});
+
+/* ── Login ── */
+function loginMicrosoft() {
+  const email = document.getElementById('ms-email').value.trim();
+  const pwd   = document.getElementById('ms-password').value;
+  if (!email || !pwd) { showToast('⚠️ Remplis tous les champs.'); return; }
+  // Simulated OAuth
+  showToast('🔄 Connexion Microsoft en cours…');
+  setTimeout(() => {
+    const username = email.split('@')[0];
+    setUser(username, 'microsoft');
+    navigate('home');
+    showToast('✅ Connecté en tant que ' + username);
+  }, 1800);
+}
+
+function loginOffline() {
+  setUser('Joueur_EvoluMC', 'offline');
+  navigate('home');
+  showToast('⚡ Mode hors-ligne activé');
+}
+
+function setUser(name, type) {
+  user = { name, type };
+  document.getElementById('player-name').textContent = name;
+  document.getElementById('player-sub').textContent  = type === 'microsoft' ? 'Compte Microsoft ✓' : 'Mode hors-ligne';
+  document.getElementById('player-avatar').textContent = type === 'microsoft' ? '👤' : '🎮';
+  const dot = document.getElementById('status-dot');
+  dot.classList.remove('offline');
+}
+
+/* ── Launch ── */
+function launchGame() {
+  if (launching) return;
+  if (!user) { navigate('login'); showToast('⚠️ Connecte-toi d\'abord !'); return; }
+
+  launching = true;
+  const btn   = document.getElementById('btn-launch');
+  const label = document.getElementById('launch-label');
+  const icon  = document.getElementById('launch-icon');
+  const pa    = document.getElementById('progress-area');
+  const fill  = document.getElementById('progress-fill');
+  const pt    = document.getElementById('progress-text');
+  const pp    = document.getElementById('progress-pct');
+
+  btn.classList.add('loading');
+  label.textContent = 'LANCEMENT…';
+  icon.textContent  = '⏳';
+  pa.classList.add('visible');
+
+  const steps = [
+    [10, 'Vérification des fichiers…'],
+    [30, 'Téléchargement des assets…'],
+    [55, 'Chargement des bibliothèques…'],
+    [75, 'Préparation de l\'environnement Java…'],
+    [90, 'Lancement de Minecraft…'],
+    [100,'Minecraft lancé !'],
+  ];
+
+  let i = 0;
+  const tick = setInterval(() => {
+    if (i >= steps.length) {
+      clearInterval(tick);
+      setTimeout(() => {
+        pa.classList.remove('visible');
+        btn.classList.remove('loading');
+        label.textContent = 'JOUER';
+        icon.textContent  = '▶';
+        fill.style.width  = '0%';
+        launching = false;
+        showToast('🎮 Minecraft EvoluMC lancé ! Bon jeu, ' + user.name + ' !');
+      }, 1000);
+      return;
+    }
+    const [pct, txt] = steps[i++];
+    fill.style.width = pct + '%';
+    pt.textContent   = txt;
+    pp.textContent   = pct + '%';
+  }, 600);
+}
+
+/* ── Versions grid ── */
+const versions = [
+  { id:'1.21.4', name:'1.21.4', sub:'La mise à jour du Printemps', icon:'🌿', tag:'latest',    installed: true  },
+  { id:'1.21.1', name:'1.21.1', sub:'Mise à jour Trial Chambers', icon:'⚔️', tag:'vanilla',   installed: true  },
+  { id:'1.20.6', name:'1.20.6', sub:'Armored Paws Update',         icon:'🐾', tag:'vanilla',   installed: false },
+  { id:'1.20.4', name:'1.20.4', sub:'Vanilla Stable',              icon:'🏔️', tag:'vanilla',   installed: false },
+  { id:'1.19.4', name:'1.19.4', sub:'Wild Update — fin de série',  icon:'🌲', tag:'vanilla',   installed: false },
+  { id:'1.18.2', name:'1.18.2', sub:'Caves & Cliffs Pt. II',       icon:'⛰️', tag:'vanilla',   installed: false },
+];
+
+const grid = document.getElementById('versions-grid');
+versions.forEach(v => {
+  const card = document.createElement('div');
+  card.className = 'version-card' + (v.installed ? ' installed' : '');
+  card.innerHTML = `
+    <div class="vc-top">
+      <span class="vc-icon">${v.icon}</span>
+      <span class="vc-badge ${v.installed ? 'installed' : v.tag}">${v.installed ? '✓ Installé' : v.tag === 'latest' ? 'Dernière' : 'Vanilla'}</span>
+    </div>
+    <div class="vc-name">Minecraft ${v.name}</div>
+    <div class="vc-sub">${v.sub}</div>
+  `;
+  card.onclick = () => {
+    document.getElementById('version-select').value = v.id;
+    navigate('home');
+    showToast('Version sélectionnée : ' + v.name);
+  };
+  grid.appendChild(card);
+});
+
+/* ── Toast ── */
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+/* ── Simulated ping ── */
+setInterval(() => {
+  const p = Math.floor(Math.random() * 30 + 18);
+  document.getElementById('ping-display').textContent = p + ' ms';
+}, 3000);
+
+/* ── Ticker rotation ── */
+const tickers = [
+  'EvoluMC 1.21.4 disponible — Serveur principal en ligne ✅',
+  'Bienvenue sur EvoluMC — Le launcher officiel par EvoluMC_Studios',
+  'Nouveau : mise à jour du Printemps disponible !',
+  'Serveur : play.evolumc.fr — Rejoins la communauté !',
+];
+let ti = 0;
+setInterval(() => {
+  ti = (ti + 1) % tickers.length;
+  document.getElementById('ticker-text').textContent = tickers[ti];
+}, 5000);
+
+/* ── Ripple effect ── */
+document.getElementById('btn-launch').addEventListener('click', function(e) {
+  const r = document.createElement('span');
+  r.className = 'ripple';
+  const rect = this.getBoundingClientRect();
+  const size = Math.max(rect.width, rect.height);
+  r.style.cssText = `width:${size}px;height:${size}px;left:${e.clientX-rect.left-size/2}px;top:${e.clientY-rect.top-size/2}px`;
+  this.appendChild(r);
+  setTimeout(() => r.remove(), 600);
+});
+</script>
+</body>
+</html>

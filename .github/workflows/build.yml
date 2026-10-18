@@ -1,0 +1,31 @@
+name: Build EvoluMC Launcher
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Installer les dépendances
+        run: npm install
+
+      - name: Compiler l'exe Windows
+        run: npm run build-win
+
+      - name: Upload de l'installeur .exe
+        uses: actions/upload-artifact@v4
+        with:
+          name: EvoluMC-Launcher-Windows
+          path: dist/*.exe

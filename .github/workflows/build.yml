@@ -22,6 +22,8 @@ jobs:
         run: npm install
 
       - name: Compiler l'exe Windows
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run build-win
 
       - name: Upload de l'installeur .exe

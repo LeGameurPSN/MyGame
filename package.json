@@ -10,8 +10,9 @@
     "build-win": "electron-builder --win --x64"
   },
   "dependencies": {
-    "minecraft-launcher-lib": "^6.2.0",
-    "msmc": "^4.1.0"
+    "@xmcl/core": "^2.15.1",
+    "@xmcl/installer": "^6.1.2",
+    "msmc": "^3.2.0"
   },
   "devDependencies": {
     "electron": "^29.0.0",

@@ -1,22 +1,17 @@
-const { app, BrowserWindow, ipcMain, shell } = require('electron');
-const path = require('path');
-const { Auth } = require('msmc');
-const { Client, Authenticator } = require('minecraft-launcher-lib');
-const os = require('os');
-const fs = require('fs');
+const { app, BrowserWindow, ipcMain } = require('electron');
+const path  = require('path');
+const os    = require('os');
+const fs    = require('fs');
 
 let win;
-const minecraftPath = path.join(os.homedir(), '.evolumc');
-let authToken = null;
+const ROOT = path.join(os.homedir(), '.evolumc');
+let authResult = null;
 
 function createWindow() {
   win = new BrowserWindow({
-    width: 960,
-    height: 620,
-    minWidth: 860,
-    minHeight: 560,
+    width: 960, height: 620,
+    minWidth: 860, minHeight: 560,
     frame: false,
-    resizable: true,
     backgroundColor: '#0a0c10',
     webPreferences: {
       nodeIntegration: false,
@@ -25,7 +20,6 @@ function createWindow() {
     },
     show: false,
   });
-
   win.loadFile('index.html');
   win.once('ready-to-show', () => win.show());
 }
@@ -33,82 +27,85 @@ function createWindow() {
 app.whenReady().then(createWindow);
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
 
-/* ── Window controls ── */
+/* Window controls */
 ipcMain.on('win-min',   () => win.minimize());
 ipcMain.on('win-max',   () => win.isMaximized() ? win.unmaximize() : win.maximize());
 ipcMain.on('win-close', () => app.quit());
 
-/* ── Microsoft Login ── */
+/* Microsoft Auth via msmc */
 ipcMain.handle('auth-microsoft', async () => {
   try {
-    const authManager = new Auth('select_account');
-    const xboxManager = await authManager.launch('electron');
-    const token = await xboxManager.getMinecraft();
-    authToken = token;
+    const { msmc } = require('msmc');
+    const result = await msmc.fastLaunch('electron', (update) => {
+      win.webContents.send('auth-update', update.toString());
+    });
+    if (msmc.errorCheck(result)) {
+      return { success: false, error: 'Connexion annulée ou échouée.' };
+    }
+    const token = msmc.getMCLC().getAuth(result);
+    authResult = token;
     return {
       success: true,
-      username: token.profile.name,
-      uuid: token.profile.id,
+      username: token.name,
+      uuid: token.uuid,
     };
   } catch (e) {
     return { success: false, error: e.message };
   }
 });
 
-/* ── Launch Minecraft ── */
+/* Launch Minecraft */
 ipcMain.handle('launch-minecraft', async (event, version) => {
-  if (!authToken) return { success: false, error: 'Non connecté' };
-
-  // Ensure minecraft dir exists
-  if (!fs.existsSync(minecraftPath)) fs.mkdirSync(minecraftPath, { recursive: true });
-
-  const opts = {
-    clientPackage: null,
-    authorization: authToken.mclc(),
-    root: minecraftPath,
-    version: {
-      number: version,
-      type: 'release',
-    },
-    memory: {
-      max: '4G',
-      min: '1G',
-    },
-    customLaunchArgs: [
-      '--username', authToken.profile.name,
-    ],
-    window: {
-      width: 1280,
-      height: 720,
-    },
-  };
-
-  const launcher = new Client();
-
-  launcher.on('debug',    (e) => win.webContents.send('mc-debug', e));
-  launcher.on('data',     (e) => win.webContents.send('mc-data', e));
-  launcher.on('progress', (e) => win.webContents.send('mc-progress', e));
-  launcher.on('download-status', (e) => win.webContents.send('mc-download', e));
-  launcher.on('close',    (code) => win.webContents.send('mc-close', code));
+  if (!authResult) return { success: false, error: 'Non connecté.' };
+  if (!fs.existsSync(ROOT)) fs.mkdirSync(ROOT, { recursive: true });
 
   try {
-    await launcher.launch(opts);
+    const { install, getVersionList } = require('@xmcl/installer');
+    const { MinecraftFolder, launch } = require('@xmcl/core');
+
+    const folder = MinecraftFolder.from(ROOT);
+
+    /* 1. Download version if needed */
+    win.webContents.send('mc-status', 'Vérification de la version ' + version + '…');
+    const versionList = await getVersionList();
+    const versionMeta = versionList.versions.find(v => v.id === version);
+    if (!versionMeta) return { success: false, error: 'Version introuvable : ' + version };
+
+    await install(versionMeta, folder, {
+      onProgress: (task) => {
+        win.webContents.send('mc-progress', {
+          name: task.path,
+          current: task.progress,
+          total: task.total,
+        });
+      },
+    });
+
+    win.webContents.send('mc-status', 'Lancement de Minecraft…');
+
+    /* 2. Launch */
+    const proc = await launch({
+      gamePath: ROOT,
+      javaPath: 'java',
+      version: version,
+      gameProfile: {
+        id: authResult.uuid,
+        name: authResult.name,
+      },
+      accessToken: authResult.access_token,
+      userType: 'msa',
+      resolution: { width: 1280, height: 720 },
+      extraExecOption: {
+        detached: true,
+      },
+    });
+
+    proc.stdout.on('data', d => win.webContents.send('mc-data', d.toString()));
+    proc.stderr.on('data', d => win.webContents.send('mc-data', d.toString()));
+    proc.on('close', code => win.webContents.send('mc-close', code));
+
     return { success: true };
   } catch (e) {
     return { success: false, error: e.message };
-  }
-});
-
-/* ── Get installed versions ── */
-ipcMain.handle('get-versions', async () => {
-  try {
-    const { getVersionList } = require('minecraft-launcher-lib');
-    const list = await getVersionList();
-    return list.versions
-      .filter(v => v.type === 'release')
-      .slice(0, 12)
-      .map(v => ({ id: v.id, type: v.type }));
-  } catch (e) {
-    return [];
   }
 });
